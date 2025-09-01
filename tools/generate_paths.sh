@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 设置基础路径
-BASE_DIR="gt/lmy_black_71mins"
-OUTPUT_FILE="gt/lmy_black_71mins.txt"
+BASE_DIR="lmy_white_72mins/square/speech"
+OUTPUT_FILE="lmy_white_72mins/lmy_white_72mins.txt"
 
 # 删除旧的输出文件（如果存在）
 > "$OUTPUT_FILE"
@@ -17,7 +17,7 @@ for folder in "$BASE_DIR"/*; do
     if [ -d "$folder" ]; then
         folder_name=$(basename "$folder")
         # 检查是否是4位数字格式（0001, 0002等）
-        if echo "$folder_name" | grep -E '^[0-9]{4}$' > /dev/null; then
+        if echo "$folder_name" | grep -E '^[0-9]{5}$' > /dev/null; then
             echo "处理目录: $folder_name"
             # 生成相对路径并写入文件
             echo "$BASE_DIR/$folder_name" >> "$OUTPUT_FILE"

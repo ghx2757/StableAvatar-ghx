@@ -181,8 +181,8 @@ class LargeScaleTalkingFantasyVideos(Dataset):
         face_masks_path = os.path.join(self.video_files[idx], "face_masks")
         lip_masks_path = os.path.join(self.video_files[idx], "lip_masks")
         raw_audio_path = os.path.join(self.video_files[idx], "audio.wav")
-        # vocal_audio_path = os.path.join(self.video_files[idx], "vocal.wav")
-        vocal_audio_path = os.path.join(self.video_files[idx], "audio.wav")
+        vocal_audio_path = os.path.join(self.video_files[idx], "vocal.wav")
+        # vocal_audio_path = os.path.join(self.video_files[idx], "audio.wav")
         video_length = self.frame_count(frames_path)
         frames_list = self.find_frames_list(frames_path)
 
