@@ -9,7 +9,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--audio_file_path", type=str)
     parser.add_argument("--saved_vocal_path", type=str)
-    parser.add_argument("--audio_separator_model_file", type=str)
+    parser.add_argument("--audio_separator_model_file", type=str, default="/root/group-shared/digital-human/ghx/StableAvatar/checkpoints/Kim_Vocal_2.onnx" )
     args = parser.parse_args()
     audio_file_path = args.audio_file_path
     audio_separator_model_file = args.audio_separator_model_file

@@ -1,0 +1,28 @@
+##ref
+# 多卡推理
+bash multiple_gpu_inference.sh
+# 合并音视频
+ffmpeg -i TestData/output/sxy-src/video_without_audio.mp4 -i TestData/audio/sxy_ss30_60s_16k.WAV -c:v copy -c:a aac -shortest TestData/output/sxy-src/video.mp4
+
+
+## training
+# 切片视频用的hallo3中的
+
+# 提取图片，并组织文件夹结构
+python tools/data_process.py \
+    --input_videos /root/gaohaixiang/code/StableAvatar-ghx/TestData/src_video/20241208-201508-crop-clip \
+    --output_path /root/gaohaixiang/code/StableAvatar-ghx/lmy_white_72mins \
+    --max_workers 16
+
+# 提取音频
+
+# 整理音频
+
+# 提取嘴唇mask
+python tools/lip_mask_extractor.py --folder_root="lmy_white_72mins/square/speech" --start=1 --end=843 --max_workers=4
+
+# 提取脸部mask
+source activate stb-ani
+
+# 执行处理
+python tools/face_mask_seperator.py --image_folder /root/gaohaixiang/code/StableAvatar-ghx/lmy_white_72mins/square/speech

@@ -1,0 +1,12 @@
+.vscode/
+.idea/
+.cache/
+__pycache__
+
+pretrained_models
+TestData
+temp
+runs
+checkpoints
+lmy_white_72mins
+models
