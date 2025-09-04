@@ -2,7 +2,7 @@
 # 多卡推理
 bash multiple_gpu_inference.sh
 # 合并音视频
-ffmpeg -i TestData/output/sxy-src/video_without_audio.mp4 -i TestData/audio/sxy_ss30_60s_16k.WAV -c:v copy -c:a aac -shortest TestData/output/sxy-src/video.mp4
+ffmpeg -i TestData/output/lmy-white-8000-2/video_without_audio.mp4 -i TestData/audio/lmy_60s_16k.wav -c:v copy -c:a aac -shortest TestData/output/lmy-white-8000-2/video.mp4
 
 
 ## training
@@ -26,3 +26,5 @@ python tools/face_mask_seperator.py --image_folder /root/gaohaixiang/code/Stable
 
 #6. 生成数据路径统计文件
 bash tools/generate_paths.sh
+
+# 全餐微调 

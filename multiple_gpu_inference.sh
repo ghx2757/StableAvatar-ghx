@@ -7,12 +7,12 @@ export MASTER_PORT=29500
 torchrun --nproc_per_node=4 --nnodes=1 --node_rank=0 --master_addr="localhost" --master_port=29500 inference.py \
   --config_path="deepspeed_config/wan2.1/wan_civitai.yaml" \
   --pretrained_model_name_or_path=$MODEL_NAME \
-  --transformer_path="/root/group-shared/digital-human/ghx/StableAvatar/checkpoints/StableAvatar-1.3B/transformer3d-rec-vec.pt" \
+  --transformer_path="checkpoints/lmy_white_72mins/checkpoint-10000/transformer3d-checkpoint-10000.pt" \
   --pretrained_wav2vec_path="/root/group-shared/digital-human/ghx/StableAvatar/checkpoints/wav2vec2-base-960h" \
-  --validation_reference_path="TestData/inference/sxy_image.png" \
-  --validation_driven_audio_path="TestData/audio/sxy_ss30_60s_16k.WAV" \
-  --output_dir="TestData/output/sxy-src" \
-  --validation_prompts="A realistic video scene:A female teacher sits on a chair, giving a lecture directly to the camera. Her hand gestures are dynamic and rhythmic, perfectly complementing the content of her lecture as she teaches. When her hands appear in the frame, they are clearly visible, move freely, and remain completely unobstructed. Her facial expressions are vivid, full of emotion, and add much to her delivery. The camera stays steady throughout, capturing every movement with sharp clarity, while the figure exudes a focused and engaging presence that is highly contagious." \
+  --validation_reference_path="TestData/inference/lmy_white_small.png" \
+  --validation_driven_audio_path="TestData/audio/lmy_60s_16k.wav" \
+  --output_dir="TestData/output/lmy-white-10000" \
+  --validation_prompts="A realistic video of a short-haired woman with black hair speaking directly to the camera, wearing a necklace and a white sports jacket, with dynamic and rhythmic hand gestures that complement his speech. Her hands are clearly visible, independent, and unobstructed. Her facial expressions are expressive and full of emotion, enhancing the delivery. Her mouth is open when talking and close when not talking, her teeth are visible. The camera remains steady, capturing sharp, clear movements and a focused, engaging presence, background is green screen." \
   --seed=42 \
   --ulysses_degree=2 \
   --ring_degree=2 \

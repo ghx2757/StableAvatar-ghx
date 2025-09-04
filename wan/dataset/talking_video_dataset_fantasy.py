@@ -181,8 +181,8 @@ class LargeScaleTalkingFantasyVideos(Dataset):
         face_masks_path = os.path.join(self.video_files[idx], "face_masks")
         lip_masks_path = os.path.join(self.video_files[idx], "lip_masks")
         raw_audio_path = os.path.join(self.video_files[idx], "audio.wav")
-        vocal_audio_path = os.path.join(self.video_files[idx], "vocal.wav")
-        # vocal_audio_path = os.path.join(self.video_files[idx], "audio.wav")
+        # vocal_audio_path = os.path.join(self.video_files[idx], "vocal.wav")
+        vocal_audio_path = os.path.join(self.video_files[idx], "audio.wav")
         video_length = self.frame_count(frames_path)
         frames_list = self.find_frames_list(frames_path)
 
@@ -296,16 +296,17 @@ class LargeScaleTalkingFantasyVideos(Dataset):
         motion_id = (1.0 - sum(cos_similarities) / len(cos_similarities)) * 100
 
 
-        if "singing" in self.video_files[idx]:
-            text_prompt = "The protagonist is singing"
-        elif "speech" in self.video_files[idx]:
-            text_prompt = "The protagonist is talking"
-        elif "dancing" in self.video_files[idx]:
-            text_prompt = "The protagonist is simultaneously dancing and singing"
-        else:
-            text_prompt = ""
-            print(1 / 0)
-
+        # if "singing" in self.video_files[idx]:
+        #     text_prompt = "The protagonist is singing"
+        # elif "speech" in self.video_files[idx]:
+        #     text_prompt = "The protagonist is talking"
+        # elif "dancing" in self.video_files[idx]:
+        #     text_prompt = "The protagonist is simultaneously dancing and singing"
+        # else:
+        #     text_prompt = ""
+        #     print(1 / 0)
+        text_prompt = "The protagonist is talking"
+        
         sample = dict(
             pixel_values=tgt_pil_image_list,
             reference_image=reference_pil_image,
