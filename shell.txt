@@ -1,4 +1,8 @@
-## ref
+
+单卡推理-lora
+bash inference.sh
+--lora_path="${checkpoint_path_prefix}/checkpoint-${train_steps}/lora-checkpoint-${train_steps}.pt" \
+
 # 多卡推理
 bash multiple_gpu_inference.sh
 # 合并音视频

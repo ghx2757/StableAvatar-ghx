@@ -49,7 +49,6 @@ from wan.utils.discrete_sampler import DiscreteSampling
 from wan.utils.fp8_optimization import replace_parameters_by_name, convert_weight_dtype_wrapper, \
     convert_model_weight_to_float8
 from wan.utils.utils import get_image_to_video_latent, save_videos_grid
-from wan.utils.lora_utils import create_network
 
 def save_video_ffmpeg(gen_video_samples, save_path, vocal_audio_path, fps=25, quality=10):
     def save_video(frames, save_path, fps, quality=9, ffmpeg_params=None, saved_frames_dir=None):
@@ -254,21 +253,6 @@ def parse_args():
         default=None,
         help="The path to the Wan checkpoint directory.")
     parser.add_argument(
-        "--lora_path",
-        type=str,
-        default=None,
-        help="The path to the LoRA checkpoint file (.pt).")
-    parser.add_argument(
-        "--rank",
-        type=int,
-        default=128,
-        help="The dimension of the LoRA update matrices.")
-    parser.add_argument(
-        "--network_alpha",
-        type=int,
-        default=64,
-        help="The alpha parameter for LoRA.")
-    parser.add_argument(
         "--revision",
         type=str,
         default=None,
@@ -449,7 +433,6 @@ def main():
             get_sequence_parallel_rank = None
             xFuserLongContextAttention = None
             get_sp_group = None
-            print(ex)
             get_world_group = None
             init_distributed_environment = None
             initialize_model_parallel = None
@@ -500,33 +483,11 @@ def main():
         torch_dtype=weight_dtype,
     )
     if args.transformer_path is not None:
-        print(f"===> Transformer path From checkpoint: {args.transformer_path}")
+        print(f"From checkpoint: {args.transformer_path}")
         state_dict = torch.load(args.transformer_path, map_location="cpu")
         state_dict = state_dict["state_dict"] if "state_dict" in state_dict else state_dict
         m, u = transformer3d.load_state_dict(state_dict, strict=False)
         print(f"missing keys: {len(m)}, unexpected keys: {len(u)}")
-    
-    # Load and apply LoRA weights if provided
-    if args.lora_path is not None and args.lora_path != "":
-        print(f"===> Loading LoRA weights from: {args.lora_path}")
-        lora_network = create_network(
-            1.0,
-            args.rank,
-            args.network_alpha,
-            transformer3d,
-            neuron_dropout=None,
-            TRANSFORMER_TARGET_REPLACE_MODULE="WanTransformer3DFantasyModel",
-        )
-        lora_network.apply_to(transformer3d, True)
-        # Load LoRA weights
-        lora_state_dict = torch.load(args.lora_path, map_location="cpu")
-        lora_info = lora_network.load_state_dict(lora_state_dict, strict=False)
-        print(f"===> LoRA weights loaded successfully: {lora_info}")
-        print(f"===> Moving LoRA network to device: {device}")
-        lora_network.to(device, dtype=weight_dtype)
-        print("===> LoRA network moved to device successfully")
-    else:
-        print("===> No LoRA path provided, using base model without LoRA fine-tuning")
     Choosen_Scheduler = scheduler_dict = {
         "Flow": FlowMatchEulerDiscreteScheduler,
     }[sampler_name]
