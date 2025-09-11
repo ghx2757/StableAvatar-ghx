@@ -31,4 +31,8 @@ python tools/face_mask_seperator.py --image_folder /root/gaohaixiang/code/Stable
 #6. 生成数据路径统计文件
 bash tools/generate_paths.sh
 
-# 全餐微调 
+# 全参微调
+bash train_1B_square.sh
+
+# lora微调
+bash train_1B_square_lora.sh
