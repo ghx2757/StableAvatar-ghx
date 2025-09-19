@@ -1,6 +1,7 @@
 import inspect
 import math
 import random
+import time
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -257,14 +258,15 @@ class WanI2VTalkingInferenceLongPipeline(DiffusionPipeline):
             add_special_tokens=True,
             return_tensors="pt",
         )
-        text_input_ids = text_inputs.input_ids
-        prompt_attention_mask = text_inputs.attention_mask
-        untruncated_ids = self.tokenizer(prompt, padding="longest", return_tensors="pt").input_ids
+        text_input_ids = text_inputs.input_ids # 输入的token id
+        prompt_attention_mask = text_inputs.attention_mask # 注意力掩码（padding）
+        untruncated_ids = self.tokenizer(prompt, padding="longest", return_tensors="pt").input_ids # 未截断的token id
 
+        # 如果被截断了，打印给用户哪些信息被截断舍弃了
         if untruncated_ids.shape[-1] >= text_input_ids.shape[-1] and not torch.equal(text_input_ids, untruncated_ids):
             removed_text = self.tokenizer.batch_decode(untruncated_ids[:, max_sequence_length - 1: -1])
             logger.warning(
-                "The following part of your input was truncated because `max_sequence_length` is set to "
+                "===> The following part of your input was truncated because `max_sequence_length` is set to "
                 f" {max_sequence_length} tokens: {removed_text}"
             )
 
@@ -360,6 +362,7 @@ class WanI2VTalkingInferenceLongPipeline(DiffusionPipeline):
 
         return prompt_embeds, negative_prompt_embeds
 
+    # 初始化噪声
     def prepare_latents(
             self, batch_size, num_channels_latents, num_frames, height, width, dtype, device, generator, latents=None
     ):
@@ -431,12 +434,30 @@ class WanI2VTalkingInferenceLongPipeline(DiffusionPipeline):
         frames = frames.float().numpy()
         return frames
 
+    def decode_latents_long(self, latents: torch.Tensor) -> torch.Tensor:
+        # 直接调用VAE的decode_long方法，简化逻辑
+        frames = self.vae.decode_long(latents.to(self.vae.dtype))
+        return frames
+
     def decode_latents_audio_video(self, latents: torch.Tensor) -> torch.Tensor:
         frames = self.vae.decode(latents.to(self.vae.dtype)).sample
         # frames = (frames / 2 + 0.5).clamp(0, 1)
         frames = frames.cpu().float()
         return frames
 
+
+    def _offload_models_except_vae(self):
+        """将除VAE外的所有模块移到CPU以释放显存"""
+        print("===> Offloading models to CPU (keeping VAE on GPU)")
+        if hasattr(self, 'text_encoder') and self.text_encoder is not None:
+            self.text_encoder.to('cpu')
+        if hasattr(self, 'transformer') and self.transformer is not None:
+            self.transformer.to('cpu')
+        if hasattr(self, 'clip_image_encoder') and self.clip_image_encoder is not None:
+            self.clip_image_encoder.to('cpu')
+        if hasattr(self, 'wav2vec') and self.wav2vec is not None:
+            self.wav2vec.to('cpu')
+        torch.cuda.empty_cache()
 
     # Copied from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion.StableDiffusionPipeline.prepare_extra_step_kwargs
     def prepare_extra_step_kwargs(self, generator, eta):
@@ -517,7 +538,7 @@ class WanI2VTalkingInferenceLongPipeline(DiffusionPipeline):
         """
         compatible with diffusers add_noise()
         """
-        timesteps = timesteps.float() / self.num_timesteps
+        timesteps = timesteps.float() / self.num_timesteps # to 0 ~ 1
         timesteps = timesteps.view(timesteps.shape + (1,) * (len(noise.shape)-1))
         return (1 - timesteps) * original_samples + timesteps * noise
 
@@ -541,11 +562,11 @@ class WanI2VTalkingInferenceLongPipeline(DiffusionPipeline):
     @replace_example_docstring(EXAMPLE_DOC_STRING)
     def __call__(
             self,
-            prompt: Optional[Union[str, List[str]]] = None,
-            negative_prompt: Optional[Union[str, List[str]]] = None,
-            height: int = 480,
-            width: int = 720,
-            video: Union[torch.FloatTensor] = None,
+            prompt: Optional[Union[str, List[str]]] = None, # 正面提示词
+            negative_prompt: Optional[Union[str, List[str]]] = None, # 反面提示词
+            height: int = 480, # 输出视频的高度
+            width: int = 720, # 输出视频的宽度
+            video: Union[torch.FloatTensor] = None, 
             mask_video: Union[torch.FloatTensor] = None,
             num_frames: int = 81,
             num_inference_steps: int = 50,
@@ -793,14 +814,33 @@ class WanI2VTalkingInferenceLongPipeline(DiffusionPipeline):
                 if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
                     progress_bar.update()
         latents = latents_all.float()[:, :, :infer_length]
+        
+        # 保存latents到本地文件作为备份
+        backup_path = "latents_backup/latents_lmy_test_mulitGPu30minsNewDecode2.pt"
+        torch.save(latents.cpu(), backup_path)
+        print(f"===> Latents backup : {backup_path}")
+        
         torch.cuda.empty_cache()
+        
+        # 开始计时：视频解码阶段
+        decode_start_time = time.time()
+        print(f"===> Starting video decoding at: {time.strftime('%H:%M:%S', time.localtime(decode_start_time))}")
+        
+        # 在解码前将其他模块移到CPU以释放显存
+        self._offload_models_except_vae()
+        
         if output_type == "numpy":
-            video = self.decode_latents(latents)
+            video = self.decode_latents_long(latents)
         elif not output_type == "latent":
-            video = self.decode_latents(latents)
+            video = self.decode_latents_long(latents)
             video = self.video_processor.postprocess_video(video=video, output_type=output_type)
         else:
             video = latents
+            
+        # 结束计时：视频解码阶段
+        decode_end_time = time.time()
+        decode_duration = decode_end_time - decode_start_time
+        print(f"===> Video decoding completed in: {decode_duration:.3f}s")
         # Offload all models
         self.maybe_free_model_hooks()
         if not return_dict:

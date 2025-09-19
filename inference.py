@@ -6,6 +6,7 @@ import os
 import random
 import shutil
 import subprocess
+import time
 from functools import partial
 
 import diffusers
@@ -426,6 +427,10 @@ def parse_args():
 
 
 def main():
+    # 记录开始时间
+    start_time = time.time()
+    print(f"===> Start Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
+    
     args = parse_args()
     config = OmegaConf.load(args.config_path)
 
@@ -616,6 +621,18 @@ def main():
                 save_videos_grid(sample, video_path, fps=fps)
         else:
             save_videos_grid(sample, video_path, fps=fps)
+            
+    # 计算并打印总运行时间
+    end_time = time.time()
+    total_time = end_time - start_time
+    hours = int(total_time // 3600)
+    minutes = int((total_time % 3600) // 60)
+    seconds = total_time % 60
+    
+    print(f"\n{'='*50}")
+    print(f"===> End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
+    print(f"===> Time Cost(Seconds): {total_time:.3f}s")
+    print(f"{'='*50}")
 
 if __name__ == "__main__":
     main()

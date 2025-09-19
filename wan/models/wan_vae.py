@@ -2,6 +2,7 @@
 # Copyright 2024-2025 The Alibaba Wan Team Authors. All rights reserved.
 from typing import Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -572,6 +573,59 @@ class AutoencoderKLWan_(nn.Module):
                 out = torch.cat([out, out_], 2)
         self.clear_cache()
         return out
+    
+    def decode_long(self, z, scale):
+        self.clear_cache()
+        # z: [b,c,t,h,w]
+        scale = [item.to(z.device, z.dtype) for item in scale]
+        if isinstance(scale[0], torch.Tensor):
+            z = z / scale[1].view(1, self.z_dim, 1, 1, 1) + scale[0].view(
+                1, self.z_dim, 1, 1, 1)
+        else:
+            z = z / scale[1] + scale[0]
+        iter_ = z.shape[2]
+        x = self.conv2(z)
+        limit_count = 0
+        batch_size = 377  # 批处理大小
+        gpu_outputs = []  # 存储GPU上的输出
+        final_output = None  # 最终输出
+        
+        for i in range(iter_):
+            print(f"===> decode frame: {i}/{iter_}")
+            self._conv_idx = [0]
+            
+            out_ = self.decoder(
+                x[:, :, i:i + 1, :, :],
+                feat_cache=self._feat_map,
+                feat_idx=self._conv_idx)
+            
+            gpu_outputs.append(out_)
+            limit_count += 1
+            
+            # 当达到批处理大小或处理完所有帧时，转移到CPU并拼接
+            if limit_count == batch_size or i == iter_ - 1:
+                # 在GPU上拼接所有批次内的输出
+                batch_output = torch.cat(gpu_outputs, dim=2)
+                # 转移到CPU
+                batch_output = batch_output.to('cpu')
+                
+                # 与之前的输出拼接
+                if final_output is None:
+                    final_output = batch_output
+                else:
+                    final_output = torch.cat([final_output, batch_output], dim=2)
+                
+                # 清空GPU输出列表，重置计数器
+                gpu_outputs = []
+                limit_count = 0
+        self.clear_cache()
+        
+        # 后处理：clamp、归一化到[0,1]范围并转换为numpy
+        final_output = final_output.clamp_(-1, 1)
+        final_output = (final_output / 2 + 0.5).clamp(0, 1)
+        final_output = final_output.float().numpy()
+        
+        return final_output
 
     def reparameterize(self, mu, log_var):
         std = torch.exp(0.5 * log_var)
@@ -679,6 +733,12 @@ class AutoencoderKLWan(ModelMixin, ConfigMixin, FromOriginalModelMixin):
         if not return_dict:
             return (decoded,)
         return DecoderOutput(sample=decoded)
+    
+    def decode_long(self, latents: torch.Tensor) -> torch.Tensor:
+        if latents.shape[0] == 1:
+            return self.model.decode_long(latents, self.scale)
+        else:
+            raise ValueError("===> do not applay batch_size>1")            
 
     @classmethod
     def from_pretrained(cls, pretrained_model_path, additional_kwargs={}):

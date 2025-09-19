@@ -268,6 +268,7 @@ def get_image_to_video_latent(validation_image_start, validation_image_end, vide
             input_video_mask = torch.zeros_like(input_video[:, :1])
             input_video_mask[:, :, len(image_start):] = 255
         else:
+            # input_video-> [batch, channels, time, height, width]
             input_video = torch.tile(
                 torch.from_numpy(np.array(image_start)).permute(2, 0, 1).unsqueeze(1).unsqueeze(0),
                 [1, 1, video_length, 1, 1]
